@@ -61,115 +61,7 @@ function print_all_sessions_html($first_session_date, $selected_session, $format
         return $session_print;
     }
 
-
-
-//$link details
-include('connectpro.php');
-
-//error escape
-if(!$link){die('Connect Error (' . mysqli_connect_errno() . ') '. mysqli_connect_error());}
-
-//testing input //$testdate is replaced by starting date variable, can come via $_SESSION //$testlocation should come from session variable
-//need to convert array to string
-
-
-//session needs to be active or it breaks //we take values from session
-if(isset($_SESSION['refer_uri']) && isset($_SESSION['day'])){
-	
-	$testlocation = $_SESSION['refer_uri'];
-	
-	if($_SESSION['refer_uri']=='Isleworth'){
-		
-		//switch tells if 1 or 2 sessions and location a or b
-		switch($_SESSION['day'][1]){
-			case 'dayOne':
-			//code
-			$startday = $_SESSION['wed_start'][1];
-			$dayofweek = 'Wednesdays';
-			break;
-			
-			case 'dayTwo':
-			//code
-			$startday = $_SESSION['sat_start'][1];
-			$dayofweek = 'Saturdays';
-			break;
-			
-			case 'dayCombined':
-			//code 25 > 23
-			if(date('Y-m-d',strtotime($_SESSION['wed_start'][1])) > date('Y-m-d',strtotime($_SESSION['sat_start'][1]))){
-				$startday = $_SESSION['wed_start'][1];
-				}else{
-				$startday = $_SESSION['sat_start'][1];
-				}
-				$dayofweek = 'Wednesdays and Saturdays';
-			break;
-			
-			default:
-			//code
-			echo 'there was an error 1a';
-			}
-		
-		}else if($_SESSION['refer_uri']=='Chiswick'){
-			
-		switch($_SESSION['day'][1]){
-			case 'dayOneChiswick':
-			//code
-			$startday = $_SESSION['mon_start_chiswick'][1];
-			$dayofweek = 'Mondays';
-			break;
-			
-			case 'dayTwoChiswick':
-			//code
-			$startday = $_SESSION['sat_start_chiswick'][1];
-			$dayofweek = 'Saturdays';
-			break;
-			
-			case 'dayCombinedChiswick':
-			//code
-			if(date('Y-m-d',strtotime($_SESSION['mon_start_chiswick'][1])) > date('Y-m-d',strtotime($_SESSION['sat_start_chiswick'][1]))){
-				$startday = $_SESSION['mon_start_chiswick'][1];
-				}else{
-				$startday = $_SESSION['sat_start_chiswick'][1];
-				}
-				$dayofweek = 'Mondays and Saturdays';
-			break;
-			
-			default:
-			//code
-			echo 'there was an error 2b';
-			//var_dump($_SESSION['day']);
-			}
-			
-			}
-	
-	
-	
-	
-	}
-	//else{ echo 'There was an error. We will contact you. E001' ; exit;}
-//end if isset $session E001 = no $_SESSION['day']
-
-
-$testdate = date('Y-m-d',strtotime(str_replace('/', '-', $startday)));
-
-//this makes sure it gets all non-training days until the end of the week
-
-if(date('l',$testdate)!='Saturday'){
-	$testdate2 = date('Y-m-d',strtotime($testdate.' next saturday'));
-}else{
-	$testdate2 = $testdate;
-	}
-
-//sql query //select distinct week number from function that converts string to date in x column, expecting values d m Y. from table y where loation equals $testlocation variable and string converted to date value from column z is between $testdate variable and the interval of 10 week from $testdate (the number 2 in the week functions is the mode, 1-53 with week starting on sunday)
-$retrieve = mysqli_query($link,"SELECT DISTINCT WEEK(STR_TO_DATE(SL_non_training_days.SL_non_training_days_date, '%d/%m/%Y'),2) FROM SL_non_training_days WHERE SL_non_training_days_location ='".$testlocation."'  AND STR_TO_DATE(SL_non_training_days.SL_non_training_days_date, '%d/%m/%Y') BETWEEN '".$testdate."' AND DATE_ADD('".$testdate2."', INTERVAL 10 WEEK) ");
-
-//count how many different weeks
-$found = mysqli_num_rows($retrieve); 
-
-?>
-
-<?php
-// Include the library
+// Include the library================================================================================================
 include_once 'dd-test/lib/GoCardless.php';
 
 
@@ -181,17 +73,18 @@ $account_details = array(
   'merchant_id'   => '',
   'access_token'  => ''
 );
-/*
 
+/*
 //sandbox
 $account_details = array(
-  'app_id'        => 
-  'app_secret'    => 
-  'merchant_id'   => 
-  'access_token'  => 
+  'app_id'        => '',
+  'app_secret'    => '',
+  'merchant_id'   => '',
+  'access_token'  => ''
 );
-
 */
+
+
 // Initialize GoCardless
 GoCardless::set_account_details($account_details);
 
@@ -215,6 +108,8 @@ if (isset($_GET['state'])) {
 }
 //echo '<pre>';
 //var_dump($confirm_params['state']);
+//echo '<br><br><br>';
+//var_dump($_GET['state']);
 //echo '</pre>';
 
 // Returns the confirmed resource if successful, otherwise throws an exception
@@ -223,13 +118,137 @@ $transaction_id = $pre_auth->id ;// returns the ID
 
 
 //if session fails, we charge the minimum for 10 weeks
-if(isset($_SESSION['subtotal'])){
-	$price = $_SESSION['subtotal'];
+if(isset($confirm_params['state']['subtotal'])){
+	$price = $confirm_params['state']['subtotal'];
+	//echo '<h1>$confirm_params[state][subtotal] '.$confirm_params['state']['subtotal'].'</h1>';
 	}else{
 		$price = 70;
 		}
 
 
+//===========================================================================================================================================
+
+
+//$link details
+include('connectpro.php');
+
+//error escape
+if(!$link){die('Connect Error (' . mysqli_connect_errno() . ') '. mysqli_connect_error());}
+
+//testing input //$testdate is replaced by starting date variable, can come via $_SESSION //$testlocation should come from session variable
+//need to convert array to string
+
+
+//session needs to be active or it breaks //we take values from session
+if(isset($confirm_params['state']['refer_uri']) && isset($confirm_params['state']['day'])){
+	
+	$testlocation = $confirm_params['state']['refer_uri'];
+	
+	if($confirm_params['state']['refer_uri']=='Isleworth'){
+		
+		//switch tells if 1 or 2 sessions and location a or b
+		switch($confirm_params['state']['day'][0]){
+			case 'dayOne':
+			//code
+			$startday = $confirm_params['state']['wed_start'][0];
+			$dayofweek = 'Wednesdays';
+			break;
+			
+			case 'dayTwo':
+			//code
+			$startday = $confirm_params['state']['sat_start'][0];
+			$dayofweek = 'Saturdays';
+			break;
+			
+			case 'dayCombined':
+			//code 25 > 23
+			if(date('Y-m-d',strtotime($confirm_params['state']['wed_start'][0])) > date('Y-m-d',strtotime($confirm_params['state']['sat_start'][0]))){
+				$startday = $confirm_params['state']['wed_start'][0];
+				}else{
+				$startday = $confirm_params['state']['sat_start'][0];
+				}
+				$dayofweek = 'Wednesdays and Saturdays';
+			break;
+			
+			default:
+			//code
+			echo 'there was an error 1a';
+			}
+		
+		}else if($confirm_params['state']['refer_uri']=='Chiswick'){
+			
+		switch($confirm_params['state']['day'][0]){
+			case 'dayOneChiswick':
+			//code
+			$startday = $confirm_params['state']['mon_start_chiswick'][0];
+			$dayofweek = 'Mondays';
+			break;
+			
+			case 'dayTwoChiswick':
+			//code
+			$startday = $confirm_params['state']['sat_start_chiswick'][0];
+			$dayofweek = 'Saturdays';
+			break;
+			
+			case 'dayCombinedChiswick':
+			//code
+			if(date('Y-m-d',strtotime($confirm_params['state']['mon_start_chiswick'][0])) > date('Y-m-d',strtotime($confirm_params['state']['sat_start_chiswick'][0]))){
+				$startday = $confirm_params['state']['mon_start_chiswick'][0];
+				}else{
+				$startday = $confirm_params['state']['sat_start_chiswick'][0];
+				}
+				$dayofweek = 'Mondays and Saturdays';
+			break;
+			
+			default:
+			//code
+			echo 'there was an error 2b';
+			//echo '<br>';
+			//var_dump($confirm_params['state']['day']);
+			//echo '<br>';
+			//var_dump($confirm_params['state']['day'][0]);
+			}
+			
+			}
+	
+	
+	
+	
+	}
+	//else{ echo 'There was an error. We will contact you. E001' ; exit;}
+//end if isset $session E001 = no $confirm_params['state']['day']
+
+
+$testdate = date('Y-m-d',strtotime(str_replace('/', '-', $startday)));
+
+//this makes sure it gets all non-training days until the end of the week
+
+if(date('l',$testdate)!='Saturday'){
+	$testdate2 = date('Y-m-d',strtotime($testdate.' next saturday'));
+}else{
+	$testdate2 = $testdate;
+	}
+
+//sql query //select distinct week number from function that converts string to date in x column, expecting values d m Y. from table y where loation equals $testlocation variable and string converted to date value from column z is between $testdate variable and the interval of 10 week from $testdate (the number 2 in the week functions is the mode, 1-53 with week starting on sunday)
+$retrieve = mysqli_query($link,"SELECT DISTINCT WEEK(STR_TO_DATE(SL_non_training_days.SL_non_training_days_date, '%d/%m/%Y'),2) FROM SL_non_training_days WHERE SL_non_training_days_location ='".$testlocation."'  AND STR_TO_DATE(SL_non_training_days.SL_non_training_days_date, '%d/%m/%Y') BETWEEN '".$testdate."' AND DATE_ADD('".$testdate2."', INTERVAL 10 WEEK) ");
+
+//count how many different weeks
+$found = mysqli_num_rows($retrieve); 
+
+?>
+
+
+
+
+
+
+
+
+
+
+
+
+<?php
 //run payment for the first time
 $pre_auth = GoCardless_PreAuthorization::find($transaction_id);
 $bill_details = array(
@@ -285,25 +304,25 @@ if($bill){
 	//echoes //this is where the mysql records the transactions per kid
 	$todayd = date('Y-m-d');
 	//if 2 children, we do this to record the each individual an not the total paid
-	$pricet = $_SESSION['subtotal']/$_SESSION['numChildren'];
+	$pricet = $confirm_params['state']['subtotal']/$confirm_params['state']['numChildren'];
 	
 	//we check how many children are being paid for in a loop
-		for ($i = 1; $i <= $_SESSION['numChildren']; $i++) {
-    		//echo '<br/>First payment on '.$date.'<br/>Next Payment on '.$startday.'<br/>Transaction id '.$transaction_id.'<br/> Kid id '.$_SESSION['child'][$i].'<br/>Today\'s date '.$todayd.'<br/>Booking Id '.$_SESSION['bookingID'].' <br/>';
-			//echo $date.' '.$np.' '.$result.' '.$_SESSION['mon_start_chiswick'][1].' '.$_SESSION['sat_start_chiswick'][1].'<br/>';			
+		for ($i = 1; $i <= $confirm_params['state']['numChildren']; $i++) {
+    		//echo '<br/>First payment on '.$date.'<br/>Next Payment on '.$startday.'<br/>Transaction id '.$transaction_id.'<br/> Kid id '.$confirm_params['state']['child'][$i].'<br/>Today\'s date '.$todayd.'<br/>Booking Id '.$confirm_params['state']['bookingID'].' <br/>';
+			//echo $date.' '.$np.' '.$result.' '.$confirm_params['state']['mon_start_chiswick'][0].' '.$confirm_params['state']['sat_start_chiswick'][0].'<br/>';			
 			
 			
 			
 			
 			//it is not running============================================ after the session breaks
 			$sql_rec = "INSERT INTO SL_dd_info (dd_id,dd_date,dd_transaction_id,dd_firstsession_payment,dd_nextsession_payment,dd_kid_id,dd_training_location,dd_amount_paid,dd_user_email,dd_training_day) 
-										VALUES ('','$todayd','$transaction_id','$datet','$nextdayt','".$_SESSION['child'][$i]."','".$_SESSION['refer_uri']."','$pricet','".$_SESSION['AuthUsername']."','".$_SESSION['day'][1]."')";
+										VALUES ('','$todayd','$transaction_id','$datet','$nextdayt','".$confirm_params['state']['child'][$i-1]."','".$confirm_params['state']['refer_uri']."','$pricet','".$confirm_params['state']['AuthUsername']."','".$confirm_params['state']['day'][0]."')";
 										
 			if(mysqli_query($link,$sql_rec)){
 				//echo('Details recorded');
 				$ourref = mysqli_insert_id($link);
 				
-				$sql="UPDATE SL_bookings SET SL_bookings_status='Paid',SL_bookings_totalpaid='$price' WHERE SL_bookings_id='".$_SESSION['bookingID']."'";
+				$sql="UPDATE SL_bookings SET SL_bookings_status='Paid',SL_bookings_totalpaid='$price' WHERE SL_bookings_id='".$confirm_params['state']['bookingID']."'";
 				$result = mysqli_query($link,$sql);
 				
 				}	else{
@@ -316,7 +335,7 @@ if($bill){
 		
 //==============================================================================================================================================================================================================		
 		
-		$sql9 = "SELECT * FROM SL_login WHERE SL_login.SL_login_username='".$_SESSION['AuthUsername']."'";
+		$sql9 = "SELECT * FROM SL_login WHERE SL_login.SL_login_username='".$confirm_params['state']['AuthUsername']."'";
 		$result9=mysql_query($sql9);
 		while ($row9=mysql_fetch_array($result9)){
 	      	extract($row9);
@@ -338,9 +357,9 @@ if($bill){
 				
 				<tr><td colspan='2'><hr /></td></tr><tr><th align='left'>Child</th><th align='right'>Cost</th></tr><tr><td colspan='2'><hr /></td></tr>";
 
-				for($si = 1; $si <= $_SESSION['numChildren']; $si++){
+				for($si = 1; $si <= $confirm_params['state']['numChildren']; $si++){
 					
-				$sql7 = "SELECT * FROM SL_children WHERE SL_children.SL_child_id='".$_SESSION['child'][$si]."'";
+				$sql7 = "SELECT * FROM SL_children WHERE SL_children.SL_child_id='".$confirm_params['state']['child'][$si-1]."'";
 				
 				$result7=mysql_query($sql7);
 				if(!$result7)
@@ -357,7 +376,7 @@ if($bill){
 						$child_firstname = str_replace("'","&apos;",$SL_child_firstname);
                         $child_surname = str_replace("'","&apos;",$SL_child_secondname);
                         $child_dob = $SL_child_DOB_day."/".$SL_child_DOB_month."/".$SL_child_DOB_year;
-						$locationt = $_SESSION['refer_uri'];
+						$locationt = $confirm_params['state']['refer_uri'];
 						//find day and location
 						$BasketHTML .= "<tr><td align='left'><b>$child_firstname $child_surname, DOB $child_dob - $dayofweek at $locationt</b></td>";
 						//$BasketHTML .= "<td align='right'>&#163;".number_format($SL_bookingskid_cost,2)."</td></tr>";
@@ -365,22 +384,22 @@ if($bill){
 
                         $BasketHTML .= "<tr><td align='left' colspan='2'>Sessions:<br />";
 
-                        if($_SESSION['day'][$si]=="dayOne") {
-                            $BasketHTML .= print_all_sessions_html($_SESSION['wed_start'][$si], "dayOne", "D jS M");
-                        } elseif($_SESSION['day'][$si]=="dayTwo") {
-                            $BasketHTML .= print_all_sessions_html($_SESSION['sat_start'][$si], "dayTwo", "D jS M");
-                        } elseif($_SESSION['day'][$si]=="dayCombined") {
-                            $BasketHTML .= print_all_sessions_html($_SESSION['wed_start'][$si], "dayOne", "D jS M");
+                        if($confirm_params['state']['day'][$si-1]=="dayOne") {
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['wed_start'][$si-1], "dayOne", "D jS M");
+                        } elseif($confirm_params['state']['day'][$si-1]=="dayTwo") {
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['sat_start'][$si-1], "dayTwo", "D jS M");
+                        } elseif($confirm_params['state']['day'][$si-1]=="dayCombined") {
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['wed_start'][$si-1], "dayOne", "D jS M");
                             $BasketHTML .= "<br /><br />";
-                            $BasketHTML .= print_all_sessions_html($_SESSION['sat_start'][$si], "dayTwo", "D jS M");
-                        } elseif($_SESSION['day'][$si]=="dayOneChiswick") {
-                            $BasketHTML .= print_all_sessions_html($_SESSION['mon_start_chiswick'][$si], "dayOneChiswick", "D jS M");
-                        } elseif($_SESSION['day'][$si]=="dayTwoChiswick") {
-                            $BasketHTML .= print_all_sessions_html($_SESSION['sat_start_chiswick'][$si], "dayTwoChiswick", "D jS M");
-                        } elseif($_SESSION['day'][$si]=="dayCombinedChiswick") {
-                            $BasketHTML .= print_all_sessions_html($_SESSION['mon_start_chiswick'][$si], "dayOneChiswick", "D jS M");
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['sat_start'][$si-1], "dayTwo", "D jS M");
+                        } elseif($confirm_params['state']['day'][$si-1]=="dayOneChiswick") {
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['mon_start_chiswick'][$si-1], "dayOneChiswick", "D jS M");
+                        } elseif($confirm_params['state']['day'][$si-1]=="dayTwoChiswick") {
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['sat_start_chiswick'][$si-1], "dayTwoChiswick", "D jS M");
+                        } elseif($confirm_params['state']['day'][$si-1]=="dayCombinedChiswick") {
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['mon_start_chiswick'][$si-1], "dayOneChiswick", "D jS M");
                             $BasketHTML .= "<br /><br />";
-                            $BasketHTML .= print_all_sessions_html($_SESSION['sat_start_chiswick'][$si], "dayTwoChiswick", "D jS M");
+                            $BasketHTML .= print_all_sessions_html($confirm_params['state']['sat_start_chiswick'][$si-1], "dayTwoChiswick", "D jS M");
                         } else {
 							$BasketHTML .= "TBC";
 						}
@@ -401,8 +420,8 @@ if($bill){
 		
 		
 		//sends the emails
-		sendemail($_SESSION['AuthUsername'],'1',$transaction_id,$BasketHTML,$ourref,0);
-		sendemail('sean@slfootballacademy.co.uk','2',"-",$BasketHTML,$_SESSION['AuthUsername'],$transaction_id);
+		sendemail($confirm_params['state']['AuthUsername'],'1',$transaction_id,$BasketHTML,$ourref,0);
+		sendemail('sean@slfootballacademy.co.uk','2',"-",$BasketHTML,$confirm_params['state']['AuthUsername'],$transaction_id);
 		
 		
 		$dontdestroy = array('AuthUsername','UserIsAdmin','UserFirstName','UserLastName');
@@ -414,12 +433,12 @@ if($bill){
 		//display alert at homepage
 		echo "Thank you for booking on to this training class.  Your transaction has been completed.<br /><br />";
 		echo 'Your first payment will be on or after the '.$date3.'. Your second payment is scheduled to be taken on the '.$nextday.'<br /><br />';
-		echo 'You will be charged £'.$_SESSION['subtotal'].'<br/><br/>.';
-        echo "A receipt for your purchase has been emailed to your email ".$_SESSION['AuthUsername'].".<br /><br />
+		//echo 'You will be charged £'.$confirm_params['state']['subtotal'].'<br/><br/>.';
+        echo "A receipt for your purchase has been emailed to your email ".$confirm_params['state']['AuthUsername'].".<br /><br />
 		Please <a class='yellowlink' href='weekly_training_chiswick.php'>click here</a> to return to the main booking page.<br /><br />";
 	
 	//echo'<pre>';
-	//var_dump($_SESSION);
+	//var_dump($confirm_params['state']);
 	//echo'</pre>';
 	
 	
